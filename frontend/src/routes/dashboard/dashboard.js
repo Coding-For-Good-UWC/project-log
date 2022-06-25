@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Container from "react-bootstrap/Container";
 import Table from "react-bootstrap/Table";
 import Form from "react-bootstrap/Form";
@@ -12,13 +13,13 @@ async function ProjectInfo() {
 }
 
 export default function Dashboard() {
+    let navigate = useNavigate();
     const [projects, setProjects] = useState({});
     const [loading, setLoading] = useState(true);
     const [projectFromDatabase, setProjectFromDatabase] = useState({});
 
     const getProjects = async () => {
         const projectInfo = await ProjectInfo();
-        // console.log(projectInfo);
         setProjectFromDatabase(projectInfo);
         setProjects(projectInfo);
         setLoading(false);
@@ -72,8 +73,9 @@ export default function Dashboard() {
                         .toString()
                         .toLowerCase()
                         .includes(filter[i].toLowerCase())
-                )
+                ) {
                     return false;
+                }
             }
             return true;
         });
@@ -171,7 +173,13 @@ export default function Dashboard() {
                         <tbody>
                             {projects.map((obj, key) => {
                                 return (
-                                    <tr key={key}>
+                                    <tr
+                                        key={key}
+                                        onClick={() => {
+                                            let path = "/projects/" + obj["id"];
+                                            navigate(path);
+                                        }}
+                                    >
                                         <td>{obj["id"]}</td>
                                         <td>{obj["project_name"]}</td>
                                         <td>{obj["description"]}</td>

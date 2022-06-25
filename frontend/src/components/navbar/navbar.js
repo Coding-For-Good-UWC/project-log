@@ -10,7 +10,7 @@ export default function NavBar({ setToken }) {
         e.preventDefault();
         localStorage.setItem("token", JSON.stringify({ token: false }));
         const token = JSON.parse(localStorage.getItem("token"));
-        console.log(token);
+        localStorage.removeItem("id");
         setToken(token);
     };
     return (

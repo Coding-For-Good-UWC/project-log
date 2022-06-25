@@ -25,7 +25,7 @@ export default function Login({ setToken }) {
             username,
             password,
         });
-        console.log(token);
+        localStorage.setItem("id", JSON.stringify(token.id));
         setToken(token);
     };
 
