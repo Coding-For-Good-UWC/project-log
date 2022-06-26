@@ -25,6 +25,18 @@ async function ProjectUpdates(id) {
     }).then((data) => data.json());
 }
 
+async function ProjectSkills(id) {
+    return fetch("http://localhost:4000/projects/" + id + "/skills", {
+        method: "GET",
+    }).then((data) => data.json());
+}
+
+async function ProjectInterests(id) {
+    return fetch("http://localhost:4000/projects/" + id + "/interests", {
+        method: "GET",
+    }).then((data) => data.json());
+}
+
 async function newUpdates(id, updates) {
     return fetch("http://localhost:4000/projects/" + id + "/new", {
         method: "POST",
@@ -79,13 +91,26 @@ export default function Projects() {
     const [members, setMembers] = useState([]);
     const [updates, setUpdates] = useState([]);
     const [inputList, setInputList] = useState([]);
+    const [skills, setSkills] = useState([]);
+    const [interests, setInterests] = useState([]);
     const bulletPoints = useRef([]);
     const [name, setName] = useState({});
     const [description, setDescription] = useState({});
     const [client, setClient] = useState({});
     const [status, setStatus] = useState({});
+    const [editable, setEditable] = useState(false);
 
     let { id } = useParams();
+
+    const isAMember = () => {
+        let flag = false;
+        for (let i = 0; i < members.length; i++) {
+            if (localStorage.getItem("id") == members[i].member_id.toString()) {
+                flag = true;
+            }
+        }
+        return flag;
+    };
 
     const handleClose = () => {
         setShow(false);
@@ -101,28 +126,46 @@ export default function Projects() {
         setShowEdit(true);
     };
 
-    const getProjects = async () => {
+    const getData = async () => {
         const projectInfo = await ProjectInfo(id);
         setProjects(projectInfo);
         const projectMembers = await ProjectMembers(id);
-        setMembers(projectMembers);
+        if (projectMembers.length > 0) {
+            setMembers(projectMembers);
+            setEditable(isAMember);
+        }
         const projectUpdates = await ProjectUpdates(id);
-        let sortedProjectUpdates = projectUpdates.sort(function (a, b) {
-            // Turn your strings into dates, and then subtract them
-            // to get a value that is either negative, positive, or zero.
-            return new Date(b.date) - new Date(a.date);
-        });
-        setUpdates(sortedProjectUpdates);
+        if (projectUpdates.length > 0) {
+            let sortedProjectUpdates = projectUpdates.sort(function (a, b) {
+                // Turn your strings into dates, and then subtract them
+                // to get a value that is either negative, positive, or zero.
+                return new Date(b.date) - new Date(a.date);
+            });
+            setUpdates(sortedProjectUpdates);
+        } else {
+            setUpdates([]);
+        }
         setName(projects.project_name);
         setDescription(projects.description);
         setClient(projects.client);
         setStatus(projects.status);
-
+        const s = await ProjectSkills(id);
+        if ("error_message" in s) {
+            setSkills([]);
+        } else {
+            setSkills(s);
+        }
+        const i = await ProjectInterests(id);
+        if ("error_message" in i) {
+            setInterests([]);
+        } else {
+            setInterests(i);
+        }
         setLoading(false);
     };
 
     if (loading == true) {
-        getProjects();
+        getData();
     }
 
     const onAddBtnClick = (event) => {
@@ -312,65 +355,129 @@ export default function Projects() {
                                     <tr>
                                         <th>Members</th>
                                         <td>
-                                            {members.map((obj, key) => {
-                                                if (members.length == key + 1) {
-                                                    return (
-                                                        obj.first_name +
-                                                        " " +
-                                                        obj.last_name
-                                                    );
-                                                }
-                                                return (
-                                                    obj.first_name +
-                                                    " " +
-                                                    obj.last_name +
-                                                    ", "
-                                                );
-                                            })}
+                                            {members.length == 0 ? (
+                                                <p>
+                                                    There are currently no
+                                                    members working on this
+                                                    project. If you would like
+                                                    to join this project, please
+                                                    add it to your project list
+                                                    on your profile page.
+                                                </p>
+                                            ) : (
+                                                <>
+                                                    {members.map((obj, key) => {
+                                                        if (
+                                                            members.length ==
+                                                            key + 1
+                                                        ) {
+                                                            return (
+                                                                obj.first_name +
+                                                                " " +
+                                                                obj.last_name
+                                                            );
+                                                        }
+                                                        return (
+                                                            obj.first_name +
+                                                            " " +
+                                                            obj.last_name +
+                                                            ", "
+                                                        );
+                                                    })}
+                                                </>
+                                            )}
                                         </td>
                                     </tr>
                                 </tbody>
                             </Table>
 
-                            <Button variant="dark" onClick={handleShowEdit}>
+                            <Button
+                                hidden={!editable}
+                                variant="dark"
+                                onClick={handleShowEdit}
+                            >
                                 Edit Project Details
                             </Button>
                         </Col>
                     </Row>
+                    <Row className="pt-5 pb-5">
+                        <Col>
+                            <h3>Skills</h3>
+                            {skills.length == 0 ? (
+                                <p>There are no skills listed currently.</p>
+                            ) : (
+                                <>
+                                    {skills.map((obj, key) => {
+                                        if (skills.length == key + 1) {
+                                            return obj.skill_name;
+                                        }
+                                        return obj.skill_name + ", ";
+                                    })}
+                                </>
+                            )}
+                        </Col>
+                        <Col>
+                            <h3>Interests</h3>
+                            {interests.length == 0 ? (
+                                <p>There are no interests listed currently.</p>
+                            ) : (
+                                <>
+                                    {interests.map((obj, key) => {
+                                        if (interests.length == key + 1) {
+                                            return obj.interest_name;
+                                        }
+                                        return obj.interest_name + ", ";
+                                    })}
+                                </>
+                            )}
+                        </Col>
+                    </Row>
                     <Row className="pb-5">
                         <Col>
-                            <h1>Update Log</h1>
-                            <Button variant="dark" onClick={handleShow}>
+                            <h3>Update Log</h3>
+                            <Button
+                                hidden={!editable}
+                                variant="dark"
+                                onClick={handleShow}
+                            >
                                 New Update
                             </Button>
                         </Col>
                     </Row>
                     <Row>
-                        {updates.map((obj, key) => {
-                            if (prev_date == "") {
-                                prev_date = FormatDate(obj.date);
-                                return (
-                                    <div key={key}>
-                                        <h4>{prev_date}</h4>
-                                        <li>{obj.post_description}</li>
-                                    </div>
-                                );
-                            } else if (prev_date == FormatDate(obj.date)) {
-                                return (
-                                    <div key={key}>
-                                        <li>{obj.post_description}</li>
-                                    </div>
-                                );
-                            } else {
-                                prev_date = FormatDate(obj.date);
-                                return (
-                                    <div key={key}>
-                                        <h4>{prev_date}</h4>
-                                        <li>{obj.post_description}</li>
-                                    </div>
-                                );
-                            }
-                        })}
+                        {updates.length == 0 ? (
+                            <p>There are no updates!</p>
+                        ) : (
+                            <>
+                                {updates.map((obj, key) => {
+                                    if (prev_date == "") {
+                                        prev_date = FormatDate(obj.date);
+                                        return (
+                                            <div key={key}>
+                                                <h4>{prev_date}</h4>
+                                                <li>{obj.post_description}</li>
+                                            </div>
+                                        );
+                                    } else if (
+                                        prev_date == FormatDate(obj.date)
+                                    ) {
+                                        return (
+                                            <div key={key}>
+                                                <li>{obj.post_description}</li>
+                                            </div>
+                                        );
+                                    } else {
+                                        prev_date = FormatDate(obj.date);
+                                        return (
+                                            <div key={key}>
+                                                <h4>{prev_date}</h4>
+                                                <li>{obj.post_description}</li>
+                                            </div>
+                                        );
+                                    }
+                                })}
+                            </>
+                        )}
                     </Row>
                 </>
             )}

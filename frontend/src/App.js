@@ -22,7 +22,7 @@ export default function App() {
                     <Route path="/" element={<Dashboard />} />
                     <Route
                         path="/profile"
-                        element={<Profile value={"VALUE STATED IN INDEX.JS"} />}
+                        element={<Profile value={localStorage.getItem("id")} />}
                     />
                     <Route path="/projects/:id" element={<Projects />} />
                 </Routes>
