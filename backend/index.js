@@ -47,6 +47,28 @@ app.get("/", (req, res) => {
     });
 });
 
+app.get("/skills", (req, res) => {
+    const query = `SELECT * FROM ${database}.skills`;
+    pool.query(query, (error, results) => {
+        if (!results[0]) {
+            res.json({ error_message: "No skills found" });
+        } else {
+            res.json(results);
+        }
+    });
+});
+
+app.get("/interests", (req, res) => {
+    const query = `SELECT * FROM ${database}.interests`;
+    pool.query(query, (error, results) => {
+        if (!results[0]) {
+            res.json({ error_message: "No interests found" });
+        } else {
+            res.json(results);
+        }
+    });
+});
+
 app.get("/members/:id", (req, res) => {
     const query = `SELECT * FROM ${database}.members WHERE id = ?`;
     pool.query(query, [sanatize(req.params.id)], (error, results) => {
@@ -59,9 +81,9 @@ app.get("/members/:id", (req, res) => {
 });
 
 app.get("/members/:id/skills", (req, res) => {
-    // SELECT skill_name FROM u158898485_coding4good.skills INNER JOIN u158898485_coding4good.member_skills
+    // SELECT skills.id, skill_name FROM u158898485_coding4good.skills INNER JOIN u158898485_coding4good.member_skills
     // ON u158898485_coding4good.skills.id=u158898485_coding4good.member_skills.skill_id WHERE u158898485_coding4good.member_skills.member_id = 1;
-    const query = `SELECT skill_name FROM ${database}.skills INNER JOIN ${database}.member_skills ON ${database}.skills.id=${database}.member_skills.skill_id WHERE ${database}.member_skills.member_id = ?;`;
+    const query = `SELECT skills.id, skill_name FROM ${database}.skills INNER JOIN ${database}.member_skills ON ${database}.skills.id=${database}.member_skills.skill_id WHERE ${database}.member_skills.member_id = ?;`;
     pool.query(query, [sanatize(req.params.id)], (error, results) => {
         if (!results[0]) {
             res.json({ error_message: "No skills found" });
@@ -71,11 +93,10 @@ app.get("/members/:id/skills", (req, res) => {
     });
 });
 
-// TODO
 app.get("/members/:id/interests", (req, res) => {
-    // SELECT interest_name FROM u158898485_coding4good.interests INNER JOIN u158898485_coding4good.member_interests
+    // SELECT interests.id, interest_name FROM u158898485_coding4good.interests INNER JOIN u158898485_coding4good.member_interests
     // ON u158898485_coding4good.interests.id=u158898485_coding4good.member_interests.interest_id WHERE u158898485_coding4good.member_interests.member_id = 1;
-    const query = `SELECT interest_name FROM ${database}.interests INNER JOIN ${database}.member_interests
+    const query = `SELECT interests.id, interest_name FROM ${database}.interests INNER JOIN ${database}.member_interests
     ON ${database}.interests.id=${database}.member_interests.interest_id WHERE ${database}.member_interests.member_id = ?;`;
     pool.query(query, [sanatize(req.params.id)], (error, results) => {
         if (!results[0]) {
@@ -84,6 +105,112 @@ app.get("/members/:id/interests", (req, res) => {
             res.json(results);
         }
     });
+});
+
+app.post("/members/:id/new-skills", (req, res) => {
+    let params = req.body;
+    let flag = true;
+    let error_code = "";
+    let full_query = "";
+    for (let i = 0; i < params.length; i++) {
+        let query = `INSERT INTO ${database}.member_skills (member_id, skill_id) VALUES (${sanatize(
+            req.params.id
+        )},${sanatize(params[i].skill_id)});`;
+        full_query += query;
+    }
+
+    pool.query(full_query, (error) => {
+        if (error) {
+            flag = false;
+            error_code = error.code;
+        }
+    });
+    if ((flag = false)) {
+        res.json({
+            error_message: `${error_code}: Inserting record failed!`,
+        });
+    } else {
+        res.json({ data: params });
+    }
+});
+
+app.post("/members/:id/delete-skills", (req, res) => {
+    let params = req.body;
+    let flag = true;
+    let error_code = "";
+    let full_query = "";
+    for (let i = 0; i < params.length; i++) {
+        let query = `DELETE FROM ${database}.member_skills WHERE member_id = ${sanatize(
+            req.params.id
+        )} AND skill_id = ${sanatize(params[i].skill_id)};`;
+        full_query += query;
+    }
+
+    pool.query(full_query, (error) => {
+        if (error) {
+            flag = false;
+            error_code = error.code;
+        }
+    });
+    if ((flag = false)) {
+        res.json({
+            error_message: `${error_code}: Inserting record failed!`,
+        });
+    } else {
+        res.json({ data: params });
+    }
+});
+
+app.post("/members/:id/new-interests", (req, res) => {
+    let params = req.body;
+    let flag = true;
+    let error_code = "";
+    let full_query = "";
+    for (let i = 0; i < params.length; i++) {
+        let query = `INSERT INTO ${database}.member_interests (member_id, interest_id) VALUES (${sanatize(
+            req.params.id
+        )},${sanatize(params[i].interest_id)});`;
+        full_query += query;
+    }
+    pool.query(full_query, (error) => {
+        if (error) {
+            flag = false;
+            error_code = error.code;
+        }
+    });
+    if ((flag = false)) {
+        res.json({
+            error_message: `${error_code}: Inserting record failed!`,
+        });
+    } else {
+        res.json({ data: params });
+    }
+});
+
+app.post("/members/:id/delete-interests", (req, res) => {
+    let params = req.body;
+    let flag = true;
+    let error_code = "";
+    let full_query = "";
+    for (let i = 0; i < params.length; i++) {
+        let query = `DELETE FROM ${database}.member_interests WHERE member_id = ${sanatize(
+            req.params.id
+        )} AND interest_id = ${sanatize(params[i].interest_id)};`;
+        full_query += query;
+    }
+    pool.query(full_query, (error) => {
+        if (error) {
+            flag = false;
+            error_code = error.code;
+        }
+    });
+    if ((flag = false)) {
+        res.json({
+            error_message: `${error_code}: Inserting record failed!`,
+        });
+    } else {
+        res.json({ data: params });
+    }
 });
 
 app.get("/members/:id/projects", (req, res) => {
@@ -107,19 +234,20 @@ app.post("/members/:id/new-projects", (req, res) => {
 
     let flag = true;
     let error_code = "";
+    let full_query = "";
     for (let i = 0; i < params.project_ids.length; i++) {
-        const query = `INSERT INTO ${database}.link_table (member_id, project_id) VALUES (?,?)`;
-        pool.query(
-            query,
-            [sanatize(req.params.id), sanatize(params.project_ids[i])],
-            (error) => {
-                if (error) {
-                    flag = false;
-                    error_code = error.code;
-                }
-            }
-        );
+        let query = `INSERT INTO ${database}.link_table (member_id, project_id) VALUES (${sanatize(
+            req.params.id
+        )}, ${sanatize(params.project_ids[i])});`;
+        full_query += query;
     }
+
+    pool.query(full_query, (error) => {
+        if (error) {
+            flag = false;
+            error_code = error.code;
+        }
+    });
     if ((flag = false)) {
         res.json({
             error_message: `${error_code}: Inserting record failed!`,
@@ -135,19 +263,19 @@ app.post("/members/:id/remove-projects", (req, res) => {
 
     let flag = true;
     let error_code = "";
+    let full_query = "";
     for (let i = 0; i < params.length; i++) {
-        const query = `DELETE FROM ${database}.link_table WHERE member_id = ? AND project_id = ?`;
-        pool.query(
-            query,
-            [sanatize(req.params.id), sanatize(params[i])],
-            (error) => {
-                if (error) {
-                    flag = false;
-                    error_code = error.code;
-                }
-            }
-        );
+        let query = `DELETE FROM ${database}.link_table WHERE member_id = ${sanatize(
+            req.params.id
+        )} AND project_id = ${sanatize(params[i])};`;
+        full_query += query;
     }
+    pool.query(full_query, (error) => {
+        if (error) {
+            flag = false;
+            error_code = error.code;
+        }
+    });
     if ((flag = false)) {
         res.json({
             error_message: `${error_code}: Inserting record failed!`,
@@ -182,9 +310,9 @@ app.get("/projects/:id/members", (req, res) => {
 });
 
 app.get("/projects/:id/skills", (req, res) => {
-    // SELECT skill_name FROM u158898485_coding4good.skills INNER JOIN u158898485_coding4good.project_skills
+    // SELECT skills.id, skill_name FROM u158898485_coding4good.skills INNER JOIN u158898485_coding4good.project_skills
     // ON u158898485_coding4good.skills.id=u158898485_coding4good.project_skills.skill_id WHERE u158898485_coding4good.project_skills.project_id = 1;
-    const query = `SELECT skill_name FROM ${database}.skills INNER JOIN ${database}.project_skills ON ${database}.skills.id=${database}.project_skills.skill_id WHERE ${database}.project_skills.project_id = ?;`;
+    const query = `SELECT skills.id, skill_name FROM ${database}.skills INNER JOIN ${database}.project_skills ON ${database}.skills.id=${database}.project_skills.skill_id WHERE ${database}.project_skills.project_id = ?;`;
     pool.query(query, [sanatize(req.params.id)], (error, results) => {
         if (!results[0]) {
             res.json({ error_message: "No skills found" });
@@ -195,9 +323,9 @@ app.get("/projects/:id/skills", (req, res) => {
 });
 
 app.get("/projects/:id/interests", (req, res) => {
-    // SELECT interest_name FROM u158898485_coding4good.interests INNER JOIN u158898485_coding4good.project_interests
+    // SELECT interests.id, interest_name FROM u158898485_coding4good.interests INNER JOIN u158898485_coding4good.project_interests
     // ON u158898485_coding4good.interests.id=u158898485_coding4good.project_interests.interest_id WHERE u158898485_coding4good.project_interests.project_id = 1;
-    const query = `SELECT interest_name FROM ${database}.interests INNER JOIN ${database}.project_interests ON ${database}.interests.id=${database}.project_interests.interest_id WHERE ${database}.project_interests.project_id = ?;`;
+    const query = `SELECT interests.id, interest_name FROM ${database}.interests INNER JOIN ${database}.project_interests ON ${database}.interests.id=${database}.project_interests.interest_id WHERE ${database}.project_interests.project_id = ?;`;
     pool.query(query, [sanatize(req.params.id)], (error, results) => {
         if (!results[0]) {
             res.json({ error_message: "No interests found" });
@@ -218,7 +346,7 @@ app.get("/projects/:id/updates", (req, res) => {
     });
 });
 
-app.post("/projects/:id/new", (req, res) => {
+app.post("/projects/:id/new-update", (req, res) => {
     let params = req.body;
     // {
     //     member_id: #,
@@ -228,24 +356,127 @@ app.post("/projects/:id/new", (req, res) => {
 
     let flag = true;
     let error_code = "";
+    let full_query = "";
     for (let i = 0; i < params.post_description.length; i++) {
-        const query = `INSERT INTO ${database}.update_log (project_id, member_id, date, post_description) VALUES (?,?,?,?)`;
-        pool.query(
-            query,
-            [
-                sanatize(req.params.id),
-                sanatize(params.member_id),
-                sanatize(params.date),
-                sanatize(params.post_description[i]),
-            ],
-            (error) => {
-                if (error) {
-                    flag = false;
-                    error_code = error.code;
-                }
-            }
-        );
+        let query = `INSERT INTO ${database}.update_log (project_id, member_id, date, post_description) VALUES (${sanatize(
+            req.params.id
+        )},${sanatize(params.member_id)},${sanatize(params.date)},${sanatize(
+            params.post_description[i]
+        )});`;
+        full_query += query;
     }
+    pool.query(full_query, (error) => {
+        if (error) {
+            flag = false;
+            error_code = error.code;
+        }
+    });
+    if ((flag = false)) {
+        res.json({
+            error_message: `${error_code}: Inserting record failed!`,
+        });
+    } else {
+        res.json({ data: params });
+    }
+});
+
+app.post("/projects/:id/new-skills", (req, res) => {
+    let params = req.body;
+    let flag = true;
+    let error_code = "";
+    let full_query = "";
+    for (let i = 0; i < params.length; i++) {
+        let query = `INSERT INTO ${database}.project_skills (project_id, skill_id) VALUES (${sanatize(
+            req.params.id
+        )},${sanatize(params[i].skill_id)});`;
+        full_query += query;
+    }
+
+    pool.query(full_query, (error) => {
+        if (error) {
+            flag = false;
+            error_code = error.code;
+        }
+    });
+
+    if ((flag = false)) {
+        res.json({
+            error_message: `${error_code}: Inserting record failed!`,
+        });
+    } else {
+        res.json({ data: params });
+    }
+});
+
+app.post("/projects/:id/delete-skills", (req, res) => {
+    let params = req.body;
+    let flag = true;
+    let error_code = "";
+    let full_query = "";
+    for (let i = 0; i < params.length; i++) {
+        let query = `DELETE FROM ${database}.project_skills WHERE project_id = ${sanatize(
+            req.params.id
+        )} AND skill_id = ${sanatize(params[i].skill_id)};`;
+        full_query += query;
+    }
+    pool.query(full_query, (error) => {
+        if (error) {
+            flag = false;
+            error_code = error.code;
+        }
+    });
+    if ((flag = false)) {
+        res.json({
+            error_message: `${error_code}: Inserting record failed!`,
+        });
+    } else {
+        res.json({ data: params });
+    }
+});
+
+app.post("/projects/:id/new-interests", (req, res) => {
+    let params = req.body;
+    let flag = true;
+    let error_code = "";
+    let full_query = "";
+    for (let i = 0; i < params.length; i++) {
+        let query = `INSERT INTO ${database}.project_interests (project_id, interest_id) VALUES (${sanatize(
+            req.params.id
+        )}, ${sanatize(params[i].interest_id)});`;
+        full_query += query;
+    }
+    pool.query(full_query, (error) => {
+        if (error) {
+            flag = false;
+            error_code = error.code;
+        }
+    });
+    if ((flag = false)) {
+        res.json({
+            error_message: `${error_code}: Inserting record failed!`,
+        });
+    } else {
+        res.json({ data: params });
+    }
+});
+
+app.post("/projects/:id/delete-interests", (req, res) => {
+    let params = req.body;
+    let flag = true;
+    let error_code = "";
+    let full_query = "";
+    for (let i = 0; i < params.length; i++) {
+        let query = `DELETE FROM ${database}.project_interests WHERE project_id = ${sanatize(
+            req.params.id
+        )} AND interest_id = ${sanatize(params[i].interest_id)};`;
+        full_query += query;
+    }
+    pool.query(full_query, (error) => {
+        if (error) {
+            flag = false;
+            error_code = error.code;
+        }
+    });
     if ((flag = false)) {
         res.json({
             error_message: `${error_code}: Inserting record failed!`,

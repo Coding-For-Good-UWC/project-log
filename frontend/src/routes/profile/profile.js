@@ -12,6 +12,18 @@ async function ProjectInfo() {
     }).then((data) => data.json());
 }
 
+async function GetAllSkills() {
+    return fetch("http://localhost:4000/skills/", {
+        method: "GET",
+    }).then((data) => data.json());
+}
+
+async function GetAllInterests() {
+    return fetch("http://localhost:4000/interests/", {
+        method: "GET",
+    }).then((data) => data.json());
+}
+
 async function MemberInfo(id) {
     return fetch("http://localhost:4000/members/" + id, {
         method: "GET",
@@ -56,9 +68,51 @@ async function deleteProjects(id, removedList) {
     }).then((data) => data.json());
 }
 
+async function RemoveSkillFromMember(id, skills) {
+    return fetch("http://localhost:4000/members/" + id + "/delete-skills", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(skills),
+    }).then((data) => data.json());
+}
+
+async function AddSkillFromMember(id, skills) {
+    return fetch("http://localhost:4000/members/" + id + "/new-skills", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(skills),
+    }).then((data) => data.json());
+}
+
+async function RemoveInterestFromMember(id, interests) {
+    return fetch("http://localhost:4000/members/" + id + "/delete-interests", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(interests),
+    }).then((data) => data.json());
+}
+
+async function AddInterestFromMember(id, interests) {
+    return fetch("http://localhost:4000/members/" + id + "/new-interests", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(interests),
+    }).then((data) => data.json());
+}
+
 export default function Profile(props) {
     const [loading, setLoading] = useState(true);
     const [show, setShow] = useState(false);
+    const [allSkills, setAllSkills] = useState({});
+    const [allInterests, setAllInterests] = useState({});
     const [showRemove, setShowRemove] = useState(false);
     const [member, setMember] = useState({});
     const [skills, setSkills] = useState([]);
@@ -70,6 +124,12 @@ export default function Profile(props) {
     const userProjectsList = useRef([]);
     const userRemoveList = useRef([]);
     const [removeList, setRemoveList] = useState([]);
+    const [showSkills, setShowSkills] = useState(false);
+    const [skillEditList, setSkillEditList] = useState([]);
+    const skillResultList = useRef([]);
+    const [showInterests, setShowInterests] = useState(false);
+    const [interestEditList, setInterestEditList] = useState([]);
+    const interestResultList = useRef([]);
 
     let id = props.value;
 
@@ -133,9 +193,113 @@ export default function Profile(props) {
         setShowRemove(true);
     };
 
+    const handleSkillsClose = () => {
+        setShowSkills(false);
+    };
+    const handleSkillsShow = () => {
+        // {
+        //     id: #
+        //     skill_name: "NAME"
+        //     is_selected: true/false
+        // }
+        let resultsList = [];
+        for (let i = 0; i < allSkills.length; i++) {
+            let item = {};
+            item.id = allSkills[i].id;
+            item.skill_name = allSkills[i].skill_name;
+            let flag = false;
+            for (let j = 0; j < skills.length; j++) {
+                if (allSkills[i].skill_name == skills[j].skill_name) {
+                    flag = true;
+                }
+            }
+            item.is_selected = flag;
+            resultsList.push(item);
+        }
+        skillResultList.current = resultsList;
+        // console.log(resultsList);
+        let editList = [];
+        for (let i = 0; i < allSkills.length; i++) {
+            editList.push(
+                <Form.Check
+                    key={i}
+                    iteration={i}
+                    skillid={resultsList[i].id}
+                    label={resultsList[i].skill_name}
+                    defaultChecked={resultsList[i].is_selected}
+                    onChange={(e) => {
+                        let a = skillResultList.current;
+                        let i = e.target.getAttribute("iteration");
+                        let bool = !a[i].is_selected;
+                        a[i].is_selected = bool;
+                        skillResultList.current = a;
+                    }}
+                ></Form.Check>
+            );
+        }
+
+        setSkillEditList(editList);
+        setShowSkills(true);
+    };
+
+    const handleInterestsClose = () => {
+        setShowInterests(false);
+    };
+    const handleInterestsShow = () => {
+        // {
+        //     id: #
+        //     skill_name: "NAME"
+        //     is_selected: true/false
+        // }
+        let resultsList = [];
+        for (let i = 0; i < allInterests.length; i++) {
+            let item = {};
+            item.id = allInterests[i].id;
+            item.interest_name = allInterests[i].interest_name;
+            let flag = false;
+            for (let j = 0; j < interests.length; j++) {
+                if (
+                    allInterests[i].interest_name == interests[j].interest_name
+                ) {
+                    flag = true;
+                }
+            }
+            item.is_selected = flag;
+            resultsList.push(item);
+        }
+        interestResultList.current = resultsList;
+        // console.log(resultsList);
+        let editList = [];
+        for (let i = 0; i < allInterests.length; i++) {
+            editList.push(
+                <Form.Check
+                    key={i}
+                    iteration={i}
+                    skillid={resultsList[i].id}
+                    label={resultsList[i].interest_name}
+                    defaultChecked={resultsList[i].is_selected}
+                    onChange={(e) => {
+                        let a = interestResultList.current;
+                        let i = e.target.getAttribute("iteration");
+                        let bool = !a[i].is_selected;
+                        a[i].is_selected = bool;
+                        interestResultList.current = a;
+                    }}
+                ></Form.Check>
+            );
+        }
+
+        setInterestEditList(editList);
+        setShowInterests(true);
+    };
+
     const getData = async () => {
         const memberInfo = await MemberInfo(id);
         setMember(memberInfo);
+        const allSkills = await GetAllSkills();
+        setAllSkills(allSkills);
+        const allInterests = await GetAllInterests();
+        setAllInterests(allInterests);
         const skillsInfo = await GetSkills(id);
         if ("error_message" in skillsInfo) {
             setSkills([]);
@@ -226,6 +390,76 @@ export default function Profile(props) {
         projectList.current.push("");
     };
 
+    const skillsEdit = async (event) => {
+        event.preventDefault();
+        let deleteList = [];
+        let addList = [];
+        let skillList = skillResultList.current;
+        let projectSkills = skills;
+        for (let i = 0; i < projectSkills.length; i++) {
+            for (let j = 0; j < skillList.length; j++) {
+                if (projectSkills[i].id == skillList[j].id) {
+                    if (skillList[j].is_selected == false) {
+                        deleteList.push({ skill_id: skillList[j].id });
+                        // console.log("Removing " + skillList[j].skill_name);
+                    }
+                    skillList.splice(j, 1);
+                }
+            }
+        }
+
+        for (let i = 0; i < skillList.length; i++) {
+            if (skillList[i].is_selected == true) {
+                addList.push({ skill_id: skillList[i].id });
+                // console.log("Adding " + skillList[i].skill_name);
+            }
+        }
+
+        if (deleteList.length != 0) {
+            await RemoveSkillFromMember(id, deleteList);
+            await getData();
+        }
+        if (addList.length != 0) {
+            await AddSkillFromMember(id, addList);
+            await getData();
+        }
+    };
+
+    const interestsEdit = async (event) => {
+        event.preventDefault();
+        let deleteList = [];
+        let addList = [];
+        let interestList = interestResultList.current;
+        let projectInterests = interests;
+        for (let i = 0; i < projectInterests.length; i++) {
+            for (let j = 0; j < interestList.length; j++) {
+                if (projectInterests[i].id == interestList[j].id) {
+                    if (interestList[j].is_selected == false) {
+                        deleteList.push({ interest_id: interestList[j].id });
+                        // console.log("Removing " + interestList[j].interest_name);
+                    }
+                    interestList.splice(j, 1);
+                }
+            }
+        }
+
+        for (let i = 0; i < interestList.length; i++) {
+            if (interestList[i].is_selected == true) {
+                addList.push({ interest_id: interestList[i].id });
+                // console.log("Adding " + interestList[i].interest_name);
+            }
+        }
+
+        if (deleteList.length != 0) {
+            await RemoveInterestFromMember(id, deleteList);
+            await getData();
+        }
+        if (addList.length != 0) {
+            await AddInterestFromMember(id, addList);
+            await getData();
+        }
+    };
+
     if (loading == true) {
         getData();
     }
@@ -291,6 +525,62 @@ export default function Profile(props) {
                                     variant="primary"
                                     type="submit"
                                     onClick={handleRemoveClose}
+                                >
+                                    Save Changes
+                                </Button>
+                            </Modal.Footer>
+                        </Form>
+                    </Modal>
+                    <Modal show={showSkills} onHide={handleSkillsClose}>
+                        <Form onSubmit={skillsEdit}>
+                            <Modal.Header closeButton>
+                                <Modal.Title>Skill List</Modal.Title>
+                            </Modal.Header>
+                            <Modal.Body>
+                                <Form.Label>
+                                    Click on every item that is relevant.
+                                </Form.Label>
+                                {skillEditList}
+                            </Modal.Body>
+                            <Modal.Footer>
+                                <Button
+                                    variant="secondary"
+                                    onClick={handleSkillsClose}
+                                >
+                                    Close
+                                </Button>
+                                <Button
+                                    variant="primary"
+                                    type="submit"
+                                    onClick={handleSkillsClose}
+                                >
+                                    Save Changes
+                                </Button>
+                            </Modal.Footer>
+                        </Form>
+                    </Modal>
+                    <Modal show={showInterests} onHide={handleInterestsClose}>
+                        <Form onSubmit={interestsEdit}>
+                            <Modal.Header closeButton>
+                                <Modal.Title>Interest List</Modal.Title>
+                            </Modal.Header>
+                            <Modal.Body>
+                                <Form.Label>
+                                    Click on every item that is relevant.
+                                </Form.Label>
+                                {interestEditList}
+                            </Modal.Body>
+                            <Modal.Footer>
+                                <Button
+                                    variant="secondary"
+                                    onClick={handleInterestsClose}
+                                >
+                                    Close
+                                </Button>
+                                <Button
+                                    variant="primary"
+                                    type="submit"
+                                    onClick={handleInterestsClose}
                                 >
                                     Save Changes
                                 </Button>
@@ -382,6 +672,12 @@ export default function Profile(props) {
                                                     </li>
                                                 )}
                                             </ul>
+                                            <Button
+                                                variant="dark"
+                                                onClick={handleSkillsShow}
+                                            >
+                                                Edit Skills
+                                            </Button>
                                         </div>
                                     </div>
                                 </Col>
@@ -486,6 +782,12 @@ export default function Profile(props) {
                                                     </li>
                                                 )}
                                             </ul>
+                                            <Button
+                                                variant="dark"
+                                                onClick={handleInterestsShow}
+                                            >
+                                                Edit Interests
+                                            </Button>
                                         </div>
                                     </div>
                                 </Col>
