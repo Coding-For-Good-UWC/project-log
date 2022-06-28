@@ -24,6 +24,18 @@ async function GetAllInterests() {
     }).then((data) => data.json());
 }
 
+async function GetAllProjectSkills() {
+    return fetch("http://localhost:4000/all-project-skills/", {
+        method: "GET",
+    }).then((data) => data.json());
+}
+
+async function GetAllProjectInterests() {
+    return fetch("http://localhost:4000/all-project-interests/", {
+        method: "GET",
+    }).then((data) => data.json());
+}
+
 async function MemberInfo(id) {
     return fetch("http://localhost:4000/members/" + id, {
         method: "GET",
@@ -108,6 +120,19 @@ async function AddInterestFromMember(id, interests) {
     }).then((data) => data.json());
 }
 
+// No nested bs
+function ArraysAreEqual(array_one, array_two) {
+    if (!array_one) return false;
+    if (!array_two) return false;
+    if (array_one.length != array_two.length) return false;
+    for (var i = 0, l = array_one.length; i < l; i++) {
+        if (array_one[i] != array_two[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
 export default function Profile(props) {
     const [loading, setLoading] = useState(true);
     const [show, setShow] = useState(false);
@@ -130,6 +155,9 @@ export default function Profile(props) {
     const [showInterests, setShowInterests] = useState(false);
     const [interestEditList, setInterestEditList] = useState([]);
     const interestResultList = useRef([]);
+    const [recommendedProject, setRecommendedProject] = useState([]);
+    const [allProjectSkills, setAllProjectSkills] = useState([]);
+    const [allProjectInterests, setAllProjectInterests] = useState([]);
 
     let id = props.value;
 
@@ -293,6 +321,108 @@ export default function Profile(props) {
         setShowInterests(true);
     };
 
+    //TODO
+    const recommenderAlgo = () => {
+        let skill_similarity_list = [];
+        let interest_similarity_list = [];
+        let aggregate_similarity_list = [];
+        const SimilarityTier = {
+            S: "S",
+            A: "A",
+            B: "B",
+            C: "C",
+            D: "D",
+        };
+        let user_skills_id = [];
+        skills.map((obj, key) => {
+            user_skills_id[key] = obj.id;
+        });
+
+        for (let i = 0; i < allProjectSkills.length; i++) {
+            let one_or_more_match = false;
+            let relevant_skill_list = [];
+            let project_skills_in_this_iteration = allProjectSkills[i].skill_id;
+            for (let j = 0; j < project_skills_in_this_iteration.length; j++) {
+                for (let k = 0; k < skills.length; k++) {
+                    if (project_skills_in_this_iteration[j] == skills[k].id) {
+                        relevant_skill_list.push(skills[k].id);
+                        one_or_more_match = true;
+                    }
+                }
+            }
+            if (
+                ArraysAreEqual(user_skills_id, project_skills_in_this_iteration)
+            ) {
+                // Type S scenario | 100% Match
+                skill_similarity_list.push({
+                    project_id: allProjectSkills[i].id,
+                    project_name: allProjectSkills[i].project_name,
+                    skill_id: relevant_skill_list,
+                    skill_similarity: 100,
+                    type: SimilarityTier.S,
+                });
+            } else if (
+                user_skills_id.length >
+                    project_skills_in_this_iteration.length &&
+                user_skills_id.some((r) =>
+                    project_skills_in_this_iteration.includes(r)
+                )
+            ) {
+                // Type A scenario | user_skills_id.length > project_skills_in_this_iteration.length | user_skills_id includes project_skills
+                skill_similarity_list.push({
+                    project_id: allProjectSkills[i].id,
+                    project_name: allProjectSkills[i].project_name,
+                    skill_id: relevant_skill_list,
+                    skill_similarity: 100,
+                    type: SimilarityTier.A,
+                });
+            } else if (
+                project_skills_in_this_iteration.length >
+                    user_skills_id.length &&
+                project_skills_in_this_iteration.some((r) =>
+                    user_skills_id.includes(r)
+                )
+            ) {
+                // Type C scenario | project_skills_in_this_iteration.length > user_skills_id.length | project_skills_in_this_iteration includes user_skills_id
+                skill_similarity_list.push({
+                    project_id: allProjectSkills[i].id,
+                    project_name: allProjectSkills[i].project_name,
+                    skill_id: relevant_skill_list,
+                    skill_similarity: 100,
+                    type: SimilarityTier.C,
+                });
+            } else if (one_or_more_match == false) {
+                // type D scenario | NO MATCHES
+                skill_similarity_list.push({
+                    project_id: allProjectSkills[i].id,
+                    project_name: allProjectSkills[i].project_name,
+                    skill_id: null,
+                    skill_similarity: 0,
+                    type: SimilarityTier.D,
+                });
+            } else {
+                // Type B scenario | (relevant_skill_list.length/(project_skills_in_this_iteration.length))% MATCHES
+                skill_similarity_list.push({
+                    project_id: allProjectSkills[i].id,
+                    project_name: allProjectSkills[i].project_name,
+                    skill_id: relevant_skill_list,
+                    skill_similarity: Math.round(
+                        (relevant_skill_list.length /
+                            project_skills_in_this_iteration.length) *
+                            100
+                    ),
+                    type: SimilarityTier.B,
+                });
+            }
+        }
+
+        console.log(skill_similarity_list);
+
+        if (aggregate_similarity_list.length > 0) {
+            setRecommendedProject(aggregate_similarity_list);
+        }
+    };
+
     const getData = async () => {
         const memberInfo = await MemberInfo(id);
         setMember(memberInfo);
@@ -300,6 +430,10 @@ export default function Profile(props) {
         setAllSkills(allSkills);
         const allInterests = await GetAllInterests();
         setAllInterests(allInterests);
+        const allPS = await GetAllProjectSkills();
+        setAllProjectSkills(allPS);
+        const allPI = await GetAllProjectInterests();
+        setAllProjectInterests(allPI);
         const skillsInfo = await GetSkills(id);
         if ("error_message" in skillsInfo) {
             setSkills([]);
@@ -587,7 +721,7 @@ export default function Profile(props) {
                             </Modal.Footer>
                         </Form>
                     </Modal>
-                    <Row className="pt-5">
+                    <Row className="pt-3">
                         <Col xs={6}>
                             <Row className="pb-5">
                                 <Col>
@@ -614,12 +748,62 @@ export default function Profile(props) {
                                                 @{member.username}
                                             </h6>
                                         </div>
-                                        <div className="pt-5 pb-3 ps-3">
+                                        <div className="pt-3 pb-3 ps-3">
                                             <h6>
                                                 Class of{" "}
                                                 {member.graduating_year}
                                             </h6>
                                             <h6>Role: {member.role}</h6>
+                                        </div>
+                                    </div>
+                                </Col>
+                            </Row>
+                            <Row className="pb-5">
+                                <Col>
+                                    <div
+                                        className="shadow pb-5"
+                                        style={{
+                                            borderRadius: "1rem",
+                                            paddingLeft: "0",
+                                            paddingRight: "0",
+                                        }}
+                                    >
+                                        <div
+                                            className="ps-3 pt-4 pb-4 bg-dark"
+                                            style={{
+                                                borderTopLeftRadius: "1rem",
+                                                borderTopRightRadius: "1rem",
+                                            }}
+                                        >
+                                            <h4 style={{ color: "white" }}>
+                                                Recommended Projects
+                                            </h4>
+                                        </div>
+                                        <div className="pt-3 ps-3">
+                                            <p>
+                                                The projects below are
+                                                recommended based on your skills
+                                                and interests you have listed.
+                                            </p>
+                                            <ol>
+                                                {recommendedProject.map(
+                                                    (obj, key) => {
+                                                        return (
+                                                            <li key={key}>
+                                                                {
+                                                                    obj.project_name
+                                                                }
+                                                            </li>
+                                                        );
+                                                    }
+                                                )}
+                                            </ol>
+                                            <Button
+                                                variant="dark"
+                                                onClick={recommenderAlgo}
+                                            >
+                                                Load Recommendations
+                                            </Button>
                                         </div>
                                     </div>
                                 </Col>
@@ -642,70 +826,10 @@ export default function Profile(props) {
                                             }}
                                         >
                                             <h4 style={{ color: "white" }}>
-                                                Skills
-                                            </h4>
-                                        </div>
-                                        <div className="pt-5 pb-3 ps-3">
-                                            <ul>
-                                                {skills.length == 0 ? (
-                                                    <li>
-                                                        There are no skills
-                                                        listed currently.
-                                                    </li>
-                                                ) : (
-                                                    <li>
-                                                        {skills.map(
-                                                            (obj, key) => {
-                                                                return (
-                                                                    <li
-                                                                        key={
-                                                                            key
-                                                                        }
-                                                                    >
-                                                                        {
-                                                                            obj.skill_name
-                                                                        }
-                                                                    </li>
-                                                                );
-                                                            }
-                                                        )}
-                                                    </li>
-                                                )}
-                                            </ul>
-                                            <Button
-                                                variant="dark"
-                                                onClick={handleSkillsShow}
-                                            >
-                                                Edit Skills
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </Col>
-                            </Row>
-                        </Col>
-                        <Col xs={6}>
-                            <Row className="pb-5">
-                                <Col>
-                                    <div
-                                        className="shadow pb-5"
-                                        style={{
-                                            borderRadius: "1rem",
-                                            paddingLeft: "0",
-                                            paddingRight: "0",
-                                        }}
-                                    >
-                                        <div
-                                            className="ps-3 pt-4 pb-4 bg-dark"
-                                            style={{
-                                                borderTopLeftRadius: "1rem",
-                                                borderTopRightRadius: "1rem",
-                                            }}
-                                        >
-                                            <h4 style={{ color: "white" }}>
                                                 Projects
                                             </h4>
                                         </div>
-                                        <div className="pt-5 ps-3">
+                                        <div className="pt-3 ps-3">
                                             <ul>
                                                 {projects.map((obj, key) => {
                                                     return (
@@ -734,6 +858,66 @@ export default function Profile(props) {
                                     </div>
                                 </Col>
                             </Row>
+                        </Col>
+                        <Col xs={6}>
+                            <Row className="pb-5">
+                                <Col>
+                                    <div
+                                        className="shadow pb-5"
+                                        style={{
+                                            borderRadius: "1rem",
+                                            paddingLeft: "0",
+                                            paddingRight: "0",
+                                        }}
+                                    >
+                                        <div
+                                            className="ps-3 pt-4 pb-4 bg-dark"
+                                            style={{
+                                                borderTopLeftRadius: "1rem",
+                                                borderTopRightRadius: "1rem",
+                                            }}
+                                        >
+                                            <h4 style={{ color: "white" }}>
+                                                Skills
+                                            </h4>
+                                        </div>
+                                        <div className="pt-3 pb-3 ps-3">
+                                            <ul>
+                                                {skills.length == 0 ? (
+                                                    <li>
+                                                        There are no skills
+                                                        listed currently.
+                                                    </li>
+                                                ) : (
+                                                    <>
+                                                        {skills.map(
+                                                            (obj, key) => {
+                                                                return (
+                                                                    <li
+                                                                        key={
+                                                                            key
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            obj.skill_name
+                                                                        }
+                                                                    </li>
+                                                                );
+                                                            }
+                                                        )}
+                                                    </>
+                                                )}
+                                            </ul>
+                                            <Button
+                                                variant="dark"
+                                                onClick={handleSkillsShow}
+                                            >
+                                                Edit Skills
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </Col>
+                            </Row>
                             <Row>
                                 <Col>
                                     <div
@@ -755,7 +939,7 @@ export default function Profile(props) {
                                                 Interests
                                             </h4>
                                         </div>
-                                        <div className="pt-5 pb-3 ps-3">
+                                        <div className="pt-3 pb-3 ps-3">
                                             <ul>
                                                 {interests.length == 0 ? (
                                                     <li>
@@ -763,7 +947,7 @@ export default function Profile(props) {
                                                         listed currently.
                                                     </li>
                                                 ) : (
-                                                    <li>
+                                                    <>
                                                         {interests.map(
                                                             (obj, key) => {
                                                                 return (
@@ -779,7 +963,7 @@ export default function Profile(props) {
                                                                 );
                                                             }
                                                         )}
-                                                    </li>
+                                                    </>
                                                 )}
                                             </ul>
                                             <Button

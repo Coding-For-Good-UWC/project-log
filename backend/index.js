@@ -36,6 +36,32 @@ function sanatize(input) {
     return escaped.slice(1, -1);
 }
 
+function multiInsertQuery(prelim_query, static_variables, loop_variable) {
+    let full_query = prelim_query;
+    let first_values = "";
+    // format static_variables
+    for (let i = 0; i < static_variables.length; i++) {
+        let x = "";
+        if (i != static_variables.length - 1) {
+            x = `${sanatize(static_variables[i])},`;
+        } else {
+            x = `${sanatize(static_variables[i])}`;
+        }
+        first_values += x;
+    }
+    for (let i = 0; i < loop_variable.length; i++) {
+        let query = "";
+        if (i != loop_variable.length - 1) {
+            query = `(${first_values},${sanatize(loop_variable[i])}),`;
+        } else {
+            query = `(${first_values},${sanatize(loop_variable[i])})`;
+        }
+        full_query += query;
+    }
+
+    return full_query;
+}
+
 app.get("/", (req, res) => {
     const query = `SELECT * FROM ${database}.projects`;
     pool.query(query, (error, results) => {
@@ -54,6 +80,70 @@ app.get("/skills", (req, res) => {
             res.json({ error_message: "No skills found" });
         } else {
             res.json(results);
+        }
+    });
+});
+
+app.get("/all-project-skills", (req, res) => {
+    // SELECT projects.id, project_skills.skill_id, projects.project_name FROM u158898485_coding4good.project_skills
+    // INNER JOIN u158898485_coding4good.projects ON u158898485_coding4good.projects.id=u158898485_coding4good.project_skills.project_id
+    const query = `SELECT projects.id, project_skills.skill_id, projects.project_name FROM ${database}.project_skills 
+    INNER JOIN ${database}.projects ON ${database}.projects.id=${database}.project_skills.project_id`;
+    pool.query(query, (error, results) => {
+        if (!results[0]) {
+            res.json({ error_message: "No skills found" });
+        } else {
+            let output = [];
+            for (let i = 0; i < results.length; i++) {
+                let existing_id = false;
+                for (let j = 0; j < output.length; j++) {
+                    if (results[i].id == output[j].id) {
+                        existing_id = true;
+                        output[j].skill_id.push(results[i].skill_id);
+                    }
+                }
+
+                if (existing_id == false) {
+                    output.push({
+                        id: results[i].id,
+                        project_name: results[i].project_name,
+                        skill_id: [results[i].skill_id],
+                    });
+                }
+            }
+            res.json(output);
+        }
+    });
+});
+
+app.get("/all-project-interests", (req, res) => {
+    // SELECT projects.id, project_interests.interest_id, projects.project_name FROM u158898485_coding4good.project_interests
+    // INNER JOIN u158898485_coding4good.projects ON u158898485_coding4good.projects.id=u158898485_coding4good.project_interests.project_id
+    const query = `SELECT projects.id, project_interests.interest_id, projects.project_name FROM ${database}.project_interests
+    INNER JOIN ${database}.projects ON ${database}.projects.id=${database}.project_interests.project_id`;
+    pool.query(query, (error, results) => {
+        if (!results[0]) {
+            res.json({ error_message: "No skills found" });
+        } else {
+            let output = [];
+            for (let i = 0; i < results.length; i++) {
+                let existing_id = false;
+                for (let j = 0; j < output.length; j++) {
+                    if (results[i].id == output[j].id) {
+                        existing_id = true;
+                        output[j].skill_id.push(results[i].interest_id);
+                    }
+                }
+
+                if (existing_id == false) {
+                    output.push({
+                        id: results[i].id,
+                        project_name: results[i].project_name,
+                        skill_id: [results[i].interest_id],
+                    });
+                }
+            }
+            res.json(output);
         }
     });
 });
@@ -111,15 +201,18 @@ app.post("/members/:id/new-skills", (req, res) => {
     let params = req.body;
     let flag = true;
     let error_code = "";
-    let full_query = "";
-    for (let i = 0; i < params.length; i++) {
-        let query = `INSERT INTO ${database}.member_skills (member_id, skill_id) VALUES (${sanatize(
-            req.params.id
-        )},${sanatize(params[i].skill_id)});`;
-        full_query += query;
-    }
+    let loop_variable = [];
+    let full_query = `INSERT INTO ${database}.member_skills (member_id, skill_id) VALUES `;
+    params.map((obj, key) => {
+        loop_variable[key] = obj.skill_id;
+    });
+    let final_query = multiInsertQuery(
+        full_query,
+        [req.params.id],
+        loop_variable
+    );
 
-    pool.query(full_query, (error) => {
+    pool.query(final_query, (error) => {
         if (error) {
             flag = false;
             error_code = error.code;
@@ -138,15 +231,17 @@ app.post("/members/:id/delete-skills", (req, res) => {
     let params = req.body;
     let flag = true;
     let error_code = "";
-    let full_query = "";
-    for (let i = 0; i < params.length; i++) {
-        let query = `DELETE FROM ${database}.member_skills WHERE member_id = ${sanatize(
-            req.params.id
-        )} AND skill_id = ${sanatize(params[i].skill_id)};`;
-        full_query += query;
-    }
-
-    pool.query(full_query, (error) => {
+    let loop_variable = [];
+    let full_query = `DELETE FROM ${database}.member_skills WHERE (member_id, skill_id) IN`;
+    params.map((obj, key) => {
+        loop_variable[key] = obj.skill_id;
+    });
+    let final_query = multiInsertQuery(
+        full_query,
+        [req.params.id],
+        loop_variable
+    );
+    pool.query(final_query, (error) => {
         if (error) {
             flag = false;
             error_code = error.code;
@@ -165,14 +260,17 @@ app.post("/members/:id/new-interests", (req, res) => {
     let params = req.body;
     let flag = true;
     let error_code = "";
-    let full_query = "";
-    for (let i = 0; i < params.length; i++) {
-        let query = `INSERT INTO ${database}.member_interests (member_id, interest_id) VALUES (${sanatize(
-            req.params.id
-        )},${sanatize(params[i].interest_id)});`;
-        full_query += query;
-    }
-    pool.query(full_query, (error) => {
+    let loop_variable = [];
+    let full_query = `INSERT INTO ${database}.member_interests (member_id, interest_id) VALUES `;
+    params.map((obj, key) => {
+        loop_variable[key] = obj.interest_id;
+    });
+    let final_query = multiInsertQuery(
+        full_query,
+        [req.params.id],
+        loop_variable
+    );
+    pool.query(final_query, (error) => {
         if (error) {
             flag = false;
             error_code = error.code;
@@ -191,14 +289,17 @@ app.post("/members/:id/delete-interests", (req, res) => {
     let params = req.body;
     let flag = true;
     let error_code = "";
-    let full_query = "";
-    for (let i = 0; i < params.length; i++) {
-        let query = `DELETE FROM ${database}.member_interests WHERE member_id = ${sanatize(
-            req.params.id
-        )} AND interest_id = ${sanatize(params[i].interest_id)};`;
-        full_query += query;
-    }
-    pool.query(full_query, (error) => {
+    let loop_variable = [];
+    let full_query = `DELETE FROM ${database}.member_interests WHERE (member_id, interest_id) IN `;
+    params.map((obj, key) => {
+        loop_variable[key] = obj.interest_id;
+    });
+    let final_query = multiInsertQuery(
+        full_query,
+        [req.params.id],
+        loop_variable
+    );
+    pool.query(final_query, (error) => {
         if (error) {
             flag = false;
             error_code = error.code;
@@ -234,15 +335,15 @@ app.post("/members/:id/new-projects", (req, res) => {
 
     let flag = true;
     let error_code = "";
-    let full_query = "";
-    for (let i = 0; i < params.project_ids.length; i++) {
-        let query = `INSERT INTO ${database}.link_table (member_id, project_id) VALUES (${sanatize(
-            req.params.id
-        )}, ${sanatize(params.project_ids[i])});`;
-        full_query += query;
-    }
+    let full_query = `INSERT INTO ${database}.link_table (member_id, project_id) VALUES `;
+    let loop_variable = params.project_ids;
+    let final_query = multiInsertQuery(
+        full_query,
+        [req.params.id],
+        loop_variable
+    );
 
-    pool.query(full_query, (error) => {
+    pool.query(final_query, (error) => {
         if (error) {
             flag = false;
             error_code = error.code;
@@ -263,14 +364,15 @@ app.post("/members/:id/remove-projects", (req, res) => {
 
     let flag = true;
     let error_code = "";
-    let full_query = "";
-    for (let i = 0; i < params.length; i++) {
-        let query = `DELETE FROM ${database}.link_table WHERE member_id = ${sanatize(
-            req.params.id
-        )} AND project_id = ${sanatize(params[i])};`;
-        full_query += query;
-    }
-    pool.query(full_query, (error) => {
+
+    let loop_variable = params;
+    let full_query = `DELETE FROM ${database}.link_table WHERE (member_id, project_id) IN `;
+    let final_query = multiInsertQuery(
+        full_query,
+        [req.params.id],
+        loop_variable
+    );
+    pool.query(final_query, (error) => {
         if (error) {
             flag = false;
             error_code = error.code;
@@ -356,16 +458,17 @@ app.post("/projects/:id/new-update", (req, res) => {
 
     let flag = true;
     let error_code = "";
-    let full_query = "";
-    for (let i = 0; i < params.post_description.length; i++) {
-        let query = `INSERT INTO ${database}.update_log (project_id, member_id, date, post_description) VALUES (${sanatize(
-            req.params.id
-        )},${sanatize(params.member_id)},${sanatize(params.date)},${sanatize(
-            params.post_description[i]
-        )});`;
-        full_query += query;
-    }
-    pool.query(full_query, (error) => {
+    let loop_variable = [];
+    let full_query = `INSERT INTO ${database}.update_log (project_id, member_id, date, post_description) VALUES `;
+    params.map((obj, key) => {
+        loop_variable[key] = obj.post_description;
+    });
+    let final_query = multiInsertQuery(
+        full_query,
+        [req.params.id, params.member_id, params.date],
+        loop_variable
+    );
+    pool.query(final_query, (error) => {
         if (error) {
             flag = false;
             error_code = error.code;
@@ -384,15 +487,17 @@ app.post("/projects/:id/new-skills", (req, res) => {
     let params = req.body;
     let flag = true;
     let error_code = "";
-    let full_query = "";
-    for (let i = 0; i < params.length; i++) {
-        let query = `INSERT INTO ${database}.project_skills (project_id, skill_id) VALUES (${sanatize(
-            req.params.id
-        )},${sanatize(params[i].skill_id)});`;
-        full_query += query;
-    }
-
-    pool.query(full_query, (error) => {
+    let loop_variable = [];
+    let full_query = `INSERT INTO ${database}.project_skills (project_id, skill_id) VALUES `;
+    params.map((obj, key) => {
+        loop_variable[key] = obj.skill_id;
+    });
+    let final_query = multiInsertQuery(
+        full_query,
+        [req.params.id],
+        loop_variable
+    );
+    pool.query(final_query, (error) => {
         if (error) {
             flag = false;
             error_code = error.code;
@@ -412,14 +517,18 @@ app.post("/projects/:id/delete-skills", (req, res) => {
     let params = req.body;
     let flag = true;
     let error_code = "";
-    let full_query = "";
-    for (let i = 0; i < params.length; i++) {
-        let query = `DELETE FROM ${database}.project_skills WHERE project_id = ${sanatize(
-            req.params.id
-        )} AND skill_id = ${sanatize(params[i].skill_id)};`;
-        full_query += query;
-    }
-    pool.query(full_query, (error) => {
+
+    let loop_variable = [];
+    let full_query = `DELETE FROM ${database}.project_skills WHERE (project_id, skill_id) IN `;
+    params.map((obj, key) => {
+        loop_variable[key] = obj.skill_id;
+    });
+    let final_query = multiInsertQuery(
+        full_query,
+        [req.params.id],
+        loop_variable
+    );
+    pool.query(final_query, (error) => {
         if (error) {
             flag = false;
             error_code = error.code;
@@ -438,14 +547,17 @@ app.post("/projects/:id/new-interests", (req, res) => {
     let params = req.body;
     let flag = true;
     let error_code = "";
-    let full_query = "";
-    for (let i = 0; i < params.length; i++) {
-        let query = `INSERT INTO ${database}.project_interests (project_id, interest_id) VALUES (${sanatize(
-            req.params.id
-        )}, ${sanatize(params[i].interest_id)});`;
-        full_query += query;
-    }
-    pool.query(full_query, (error) => {
+    let loop_variable = [];
+    let full_query = `INSERT INTO ${database}.project_interests (project_id, interest_id) VALUES `;
+    params.map((obj, key) => {
+        loop_variable[key] = obj.interest_id;
+    });
+    let final_query = multiInsertQuery(
+        full_query,
+        [req.params.id],
+        loop_variable
+    );
+    pool.query(final_query, (error) => {
         if (error) {
             flag = false;
             error_code = error.code;
@@ -464,14 +576,17 @@ app.post("/projects/:id/delete-interests", (req, res) => {
     let params = req.body;
     let flag = true;
     let error_code = "";
-    let full_query = "";
-    for (let i = 0; i < params.length; i++) {
-        let query = `DELETE FROM ${database}.project_interests WHERE project_id = ${sanatize(
-            req.params.id
-        )} AND interest_id = ${sanatize(params[i].interest_id)};`;
-        full_query += query;
-    }
-    pool.query(full_query, (error) => {
+    let loop_variable = [];
+    let full_query = `DELETE FROM ${database}.project_interests WHERE (project_id, interest_id) IN `;
+    params.map((obj, key) => {
+        loop_variable[key] = obj.interest_id;
+    });
+    let final_query = multiInsertQuery(
+        full_query,
+        [req.params.id],
+        loop_variable
+    );
+    pool.query(final_query, (error) => {
         if (error) {
             flag = false;
             error_code = error.code;
