@@ -131,7 +131,7 @@ app.get("/all-project-interests", (req, res) => {
                 for (let j = 0; j < output.length; j++) {
                     if (results[i].id == output[j].id) {
                         existing_id = true;
-                        output[j].skill_id.push(results[i].interest_id);
+                        output[j].interest_id.push(results[i].interest_id);
                     }
                 }
 
@@ -139,7 +139,7 @@ app.get("/all-project-interests", (req, res) => {
                     output.push({
                         id: results[i].id,
                         project_name: results[i].project_name,
-                        skill_id: [results[i].interest_id],
+                        interest_id: [results[i].interest_id],
                     });
                 }
             }

@@ -327,15 +327,19 @@ export default function Profile(props) {
         let interest_similarity_list = [];
         let aggregate_similarity_list = [];
         const SimilarityTier = {
-            S: "S",
-            A: "A",
-            B: "B",
-            C: "C",
-            D: "D",
+            S: 5000,
+            A: 4000,
+            B: 3000,
+            C: 2000,
+            D: 1000,
         };
         let user_skills_id = [];
         skills.map((obj, key) => {
             user_skills_id[key] = obj.id;
+        });
+        let user_interests_id = [];
+        interests.map((obj, key) => {
+            user_interests_id[key] = obj.id;
         });
 
         for (let i = 0; i < allProjectSkills.length; i++) {
@@ -415,10 +419,181 @@ export default function Profile(props) {
                 });
             }
         }
+        for (let i = 0; i < allProjectInterests.length; i++) {
+            let one_or_more_match = false;
+            let relevant_interest_list = [];
+            let project_interests_in_this_iteration =
+                allProjectInterests[i].interest_id;
+            for (
+                let j = 0;
+                j < project_interests_in_this_iteration.length;
+                j++
+            ) {
+                for (let k = 0; k < interests.length; k++) {
+                    if (
+                        project_interests_in_this_iteration[j] ==
+                        interests[k].id
+                    ) {
+                        relevant_interest_list.push(interests[k].id);
+                        one_or_more_match = true;
+                    }
+                }
+            }
+            if (
+                ArraysAreEqual(
+                    user_interests_id,
+                    project_interests_in_this_iteration
+                )
+            ) {
+                // Type S scenario | 100% Match
+                interest_similarity_list.push({
+                    project_id: allProjectInterests[i].id,
+                    project_name: allProjectInterests[i].project_name,
+                    interest_id: relevant_interest_list,
+                    interest_similarity: 100,
+                    type: SimilarityTier.S,
+                });
+            } else if (
+                user_interests_id.length >
+                    project_interests_in_this_iteration.length &&
+                user_interests_id.some((r) =>
+                    project_interests_in_this_iteration.includes(r)
+                )
+            ) {
+                // Type A scenario | user_interests_id.length > project_interests_in_this_iteration.length | user_interests_id includes project_interests
+                interest_similarity_list.push({
+                    project_id: allProjectInterests[i].id,
+                    project_name: allProjectInterests[i].project_name,
+                    interest_id: relevant_interest_list,
+                    interest_similarity: 100,
+                    type: SimilarityTier.A,
+                });
+            } else if (
+                project_interests_in_this_iteration.length >
+                    user_interests_id.length &&
+                project_interests_in_this_iteration.some((r) =>
+                    user_interests_id.includes(r)
+                )
+            ) {
+                // Type C scenario | project_interests_in_this_iteration.length > user_interests_id.length | project_interests_in_this_iteration includes user_interests_id
+                interest_similarity_list.push({
+                    project_id: allProjectInterests[i].id,
+                    project_name: allProjectInterests[i].project_name,
+                    interest_id: relevant_interest_list,
+                    interest_similarity: 100,
+                    type: SimilarityTier.C,
+                });
+            } else if (one_or_more_match == false) {
+                // type D scenario | NO MATCHES
+                interest_similarity_list.push({
+                    project_id: allProjectInterests[i].id,
+                    project_name: allProjectInterests[i].project_name,
+                    interest_id: null,
+                    interest_similarity: 0,
+                    type: SimilarityTier.D,
+                });
+            } else {
+                // Type B scenario | (relevant_interest_list.length/(project_interests_in_this_iteration.length))% MATCHES
+                interest_similarity_list.push({
+                    project_id: allProjectInterests[i].id,
+                    project_name: allProjectInterests[i].project_name,
+                    interest_id: relevant_interest_list,
+                    interest_similarity: Math.round(
+                        (relevant_interest_list.length /
+                            project_interests_in_this_iteration.length) *
+                            100
+                    ),
+                    type: SimilarityTier.B,
+                });
+            }
+        }
 
-        console.log(skill_similarity_list);
+        let a = skill_similarity_list.length;
+        let b = interest_similarity_list.length;
+        let max_list_length = 0;
+
+        if (a > b) {
+            max_list_length = a;
+        } else {
+            max_list_length = b;
+        }
+
+        for (let i = 0; i < max_list_length; i++) {
+            for (let j = 0; j < max_list_length; j++) {
+                if (
+                    skill_similarity_list[i] != undefined &&
+                    interest_similarity_list[j] != undefined
+                ) {
+                    if (
+                        skill_similarity_list[i].project_id ==
+                        interest_similarity_list[j].project_id
+                    ) {
+                        let similarity_index =
+                            skill_similarity_list[i].type +
+                            skill_similarity_list[i].skill_similarity +
+                            interest_similarity_list[j].type +
+                            interest_similarity_list[j].interest_similarity;
+                        aggregate_similarity_list.push({
+                            project_id: skill_similarity_list[i].project_id,
+                            aggregate_similairty: similarity_index,
+                        });
+                    }
+                } else if (
+                    skill_similarity_list[i] != undefined &&
+                    interest_similarity_list[j] == undefined
+                ) {
+                    let flag = false;
+                    for (let k = 0; k < aggregate_similarity_list.length; k++) {
+                        if (
+                            aggregate_similarity_list[k].project_id ==
+                            skill_similarity_list[i].project_id
+                        ) {
+                            flag = true;
+                        }
+                    }
+                    if (flag == false) {
+                        let similarity_index =
+                            skill_similarity_list[i].type +
+                            skill_similarity_list[i].skill_similarity;
+                        aggregate_similarity_list.push({
+                            project_id: skill_similarity_list[i].project_id,
+                            aggregate_similairty: similarity_index,
+                        });
+                    }
+                } else if (
+                    skill_similarity_list[i] == undefined &&
+                    interest_similarity_list[j] != undefined
+                ) {
+                    let flag = false;
+                    for (let k = 0; k < aggregate_similarity_list.length; k++) {
+                        if (
+                            aggregate_similarity_list[k].project_id ==
+                            interest_similarity_list[j].project_id
+                        ) {
+                            flag = true;
+                        }
+                    }
+                    if (flag == false) {
+                        let similarity_index =
+                            interest_similarity_list[j].type +
+                            interest_similarity_list[j].interest_similarity;
+                        aggregate_similarity_list.push({
+                            project_id: interest_similarity_list[j].project_id,
+                            aggregate_similairty: similarity_index,
+                        });
+                    }
+                }
+            }
+        }
+
+        aggregate_similarity_list.sort((a, b) => {
+            return a.aggregate_similairty - b.aggregate_similairty;
+        });
 
         if (aggregate_similarity_list.length > 0) {
+            console.log(skill_similarity_list);
+            console.log(interest_similarity_list);
+            console.log(aggregate_similarity_list);
             setRecommendedProject(aggregate_similarity_list);
         }
     };
@@ -790,9 +965,7 @@ export default function Profile(props) {
                                                     (obj, key) => {
                                                         return (
                                                             <li key={key}>
-                                                                {
-                                                                    obj.project_name
-                                                                }
+                                                                {obj.project_id}
                                                             </li>
                                                         );
                                                     }
