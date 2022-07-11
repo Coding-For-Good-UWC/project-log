@@ -7,6 +7,7 @@ import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
+import Loading from "../../components/loading/loading";
 
 async function GetAllSkills() {
     return fetch("http://localhost:4000/skills/", {
@@ -452,7 +453,7 @@ export default function Projects() {
     return (
         <Container className="pt-5">
             {loading ? (
-                <h1>Loading Data</h1>
+                <Loading />
             ) : (
                 <>
                     <Modal show={show} onHide={handleClose}>

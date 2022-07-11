@@ -5,6 +5,7 @@ import Col from "react-bootstrap/Col";
 import Form from "react-bootstrap/Form";
 import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
+import Loading from "../../components/loading/loading";
 
 async function ProjectInfo() {
     return fetch("http://localhost:4000/", {
@@ -776,7 +777,7 @@ export default function Profile(props) {
     return (
         <Container>
             {loading ? (
-                <h1>Loading Data</h1>
+                <Loading/>
             ) : (
                 <>
                     <Modal show={show} onHide={handleClose}>

@@ -1,0 +1,2 @@
+loading.gif: loading.io
+loading_transparent.gif: loading.io
