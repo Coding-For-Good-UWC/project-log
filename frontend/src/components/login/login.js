@@ -15,6 +15,12 @@ async function loginUser(credentials) {
     }).then((data) => data.json());
 }
 
+async function MemberInfo(id) {
+    return fetch("http://localhost:4000/members/" + id, {
+        method: "GET",
+    }).then((data) => data.json());
+}
+
 export default function Login({ setToken }) {
     const [username, setUsername] = useState();
     const [password, setPassword] = useState();
@@ -27,6 +33,10 @@ export default function Login({ setToken }) {
         });
         localStorage.setItem("id", JSON.stringify(token.id));
         setToken(token);
+
+        const memberInfo = await MemberInfo(token.id);
+        let name = memberInfo.first_name + " " + memberInfo.last_name;
+        localStorage.setItem("name", JSON.stringify(name));
     };
 
     return (

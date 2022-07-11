@@ -6,11 +6,13 @@ import Container from "react-bootstrap/Container";
 import PropTypes from "prop-types";
 
 export default function NavBar({ setToken }) {
+    let name = localStorage.getItem("name").slice(1, -1);
     const onClick = (e) => {
         e.preventDefault();
         localStorage.setItem("token", JSON.stringify({ token: false }));
         const token = JSON.parse(localStorage.getItem("token"));
         localStorage.removeItem("id");
+        localStorage.removeItem("name");
         setToken(token);
     };
     return (
@@ -21,6 +23,9 @@ export default function NavBar({ setToken }) {
                     <Nav.Link href="/profile">Profile</Nav.Link>
                 </Nav>
                 <Navbar.Collapse className="justify-content-end">
+                    <Navbar.Text className="me-4">
+                        Signed in as: {name}
+                    </Navbar.Text>
                     <Button variant="light" onClick={onClick}>
                         Log Out
                     </Button>

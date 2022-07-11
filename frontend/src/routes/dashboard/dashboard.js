@@ -5,6 +5,7 @@ import Table from "react-bootstrap/Table";
 import Form from "react-bootstrap/Form";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
+import Loading from "../../components/loading/loading";
 
 async function ProjectInfo() {
     return fetch("http://localhost:4000/", {
@@ -96,7 +97,7 @@ export default function Dashboard() {
     return (
         <Container className="pt-5">
             {loading ? (
-                <h1>Loading Table</h1>
+                <Loading />
             ) : (
                 <>
                     <div className="p-2 pb-5">
