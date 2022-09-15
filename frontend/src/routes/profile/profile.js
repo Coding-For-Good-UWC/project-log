@@ -565,15 +565,6 @@ export default function Profile(props) {
                             project_name: skill_similarity_list[i].project_name,
                             aggregate_similairty: similarity_index,
                         });
-                    } else {
-                        let x = int(
-                            aggregate_similairty_list[k].aggregate_similairty
-                        );
-                        x +=
-                            skill_similarity_list[i].type +
-                            skill_similarity_list[i].skill_similarity;
-                        aggregate_similairty_list[k].aggregate_similairty = x;
-                    }
                 } else if (
                     skill_similarity_list[i] == undefined &&
                     interest_similarity_list[j] != undefined
@@ -595,15 +586,6 @@ export default function Profile(props) {
                             project_id: interest_similarity_list[j].project_id,
                             aggregate_similairty: similarity_index,
                         });
-                    } else {
-                        let x = int(
-                            aggregate_similairty_list[k].aggregate_similairty
-                        );
-                        x +=
-                            skill_similarity_list[i].type +
-                            skill_similarity_list[i].skill_similarity;
-                        aggregate_similairty_list[k].aggregate_similairty = x;
-                    }
                 }
             }
         }
