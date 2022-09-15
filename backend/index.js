@@ -633,14 +633,21 @@ app.post("/projects/:id/edit", (req, res) => {
 app.use("/login", (req, res) => {
     // Test account passwords are "test"
     let params = req.body;
-    const query = `SELECT id, password_hash FROM ${database}.members WHERE username = ?`;
+    const query = `SELECT id, first_name, last_name, password_hash FROM ${database}.members WHERE username = ?`;
     pool.query(query, [sanatize(params.username)], (error, results) => {
         if (!results[0]) {
             res.json({ error_message: "No user with that username found" });
         } else {
             if (results[0].password_hash == sanatize(params.password)) {
                 let user_id = results[0].id;
-                res.send({ token: true, id: user_id });
+                let first_name = results[0].first_name;
+                let last_name = results[0].last_name;
+                res.send({
+                    token: true,
+                    id: user_id,
+                    first_name: first_name,
+                    last_name: last_name,
+                });
             } else {
                 res.json({ error_message: "Password is invalid" });
             }

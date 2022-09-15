@@ -322,7 +322,6 @@ export default function Profile(props) {
         setShowInterests(true);
     };
 
-    //TODO
     const recommenderAlgo = () => {
         let skill_similarity_list = [];
         let interest_similarity_list = [];
@@ -343,11 +342,14 @@ export default function Profile(props) {
             user_interests_id[key] = obj.id;
         });
 
+        // Loops through objects that contain the project id, project name and an array of skill_ids
         for (let i = 0; i < allProjectSkills.length; i++) {
             let one_or_more_match = false;
             let relevant_skill_list = [];
             let project_skills_in_this_iteration = allProjectSkills[i].skill_id;
+            // Loops through the skills in the current project
             for (let j = 0; j < project_skills_in_this_iteration.length; j++) {
+                // Loops through user's skills
                 for (let k = 0; k < skills.length; k++) {
                     if (project_skills_in_this_iteration[j] == skills[k].id) {
                         relevant_skill_list.push(skills[k].id);
@@ -355,6 +357,7 @@ export default function Profile(props) {
                     }
                 }
             }
+            // ArraysAreEqual is a custom function written specifically for the purpose of comparing an array of skill_ids
             if (
                 ArraysAreEqual(user_skills_id, project_skills_in_this_iteration)
             ) {
@@ -536,6 +539,7 @@ export default function Profile(props) {
                             interest_similarity_list[j].interest_similarity;
                         aggregate_similarity_list.push({
                             project_id: skill_similarity_list[i].project_id,
+                            project_name: skill_similarity_list[i].project_name,
                             aggregate_similairty: similarity_index,
                         });
                     }
@@ -558,8 +562,17 @@ export default function Profile(props) {
                             skill_similarity_list[i].skill_similarity;
                         aggregate_similarity_list.push({
                             project_id: skill_similarity_list[i].project_id,
+                            project_name: skill_similarity_list[i].project_name,
                             aggregate_similairty: similarity_index,
                         });
+                    } else {
+                        let x = int(
+                            aggregate_similairty_list[k].aggregate_similairty
+                        );
+                        x +=
+                            skill_similarity_list[i].type +
+                            skill_similarity_list[i].skill_similarity;
+                        aggregate_similairty_list[k].aggregate_similairty = x;
                     }
                 } else if (
                     skill_similarity_list[i] == undefined &&
@@ -582,13 +595,21 @@ export default function Profile(props) {
                             project_id: interest_similarity_list[j].project_id,
                             aggregate_similairty: similarity_index,
                         });
+                    } else {
+                        let x = int(
+                            aggregate_similairty_list[k].aggregate_similairty
+                        );
+                        x +=
+                            skill_similarity_list[i].type +
+                            skill_similarity_list[i].skill_similarity;
+                        aggregate_similairty_list[k].aggregate_similairty = x;
                     }
                 }
             }
         }
 
         aggregate_similarity_list.sort((a, b) => {
-            return a.aggregate_similairty - b.aggregate_similairty;
+            return b.aggregate_similairty - a.aggregate_similairty;
         });
 
         if (aggregate_similarity_list.length > 0) {
@@ -777,7 +798,7 @@ export default function Profile(props) {
     return (
         <Container>
             {loading ? (
-                <Loading/>
+                <Loading />
             ) : (
                 <>
                     <Modal show={show} onHide={handleClose}>
@@ -964,11 +985,15 @@ export default function Profile(props) {
                                             <ol>
                                                 {recommendedProject.map(
                                                     (obj, key) => {
-                                                        return (
-                                                            <li key={key}>
-                                                                {obj.project_id}
-                                                            </li>
-                                                        );
+                                                        if (key < 5) {
+                                                            return (
+                                                                <li key={key}>
+                                                                    {
+                                                                        obj.project_name
+                                                                    }
+                                                                </li>
+                                                            );
+                                                        }
                                                     }
                                                 )}
                                             </ol>
