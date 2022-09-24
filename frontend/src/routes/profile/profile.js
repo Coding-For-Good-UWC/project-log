@@ -565,6 +565,7 @@ export default function Profile(props) {
                             project_name: skill_similarity_list[i].project_name,
                             aggregate_similairty: similarity_index,
                         });
+                    }
                 } else if (
                     skill_similarity_list[i] == undefined &&
                     interest_similarity_list[j] != undefined
@@ -586,6 +587,7 @@ export default function Profile(props) {
                             project_id: interest_similarity_list[j].project_id,
                             aggregate_similairty: similarity_index,
                         });
+                    }
                 }
             }
         }
