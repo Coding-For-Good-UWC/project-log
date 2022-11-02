@@ -31,6 +31,9 @@ export default function Login({ setToken }) {
             username,
             password,
         });
+        if("error_message" in token){
+            alert("Incorrect credentials! Please try again.")
+        }
         let name = token.first_name + " " + token.last_name;
         localStorage.setItem("name", JSON.stringify(name));
         localStorage.setItem("id", JSON.stringify(token.id));

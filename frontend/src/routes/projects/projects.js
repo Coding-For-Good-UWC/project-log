@@ -148,6 +148,7 @@ export default function Projects() {
     const [skills, setSkills] = useState([]);
     const [interests, setInterests] = useState([]);
     const bulletPoints = useRef([]);
+    const [refresh, setRefresh] = useState(true);
     const [name, setName] = useState({});
     const [description, setDescription] = useState({});
     const [client, setClient] = useState({});
@@ -333,6 +334,7 @@ export default function Projects() {
     }
 
     const onAddBtnClick = (event) => {
+        bulletPoints.current.push("");
         setInputList(
             inputList.concat(
                 <Form.Control
@@ -349,7 +351,6 @@ export default function Projects() {
                 />
             )
         );
-        bulletPoints.current.push("");
     };
 
     const insertUpdates = async (event) => {
@@ -362,6 +363,8 @@ export default function Projects() {
             post_description: bulletpoints,
         };
         const result = await newUpdates(id, output);
+        bulletPoints.current = [];
+        setRefresh(!refresh);
     };
 
     const editDetails = async (event) => {
